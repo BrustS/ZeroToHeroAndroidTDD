@@ -8,13 +8,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 
-var enabled_button = true
-
 class MainActivity : AppCompatActivity() {
 
+    private var uiState: UiState = UiState.Base("0")
     private lateinit var button: Button
     private lateinit var textView: TextView
-    private val count = Count.Base(2,4)
+    private val count = Count.Base(2, 4)
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,25 +22,27 @@ class MainActivity : AppCompatActivity() {
 
         textView = findViewById(R.id.countTextView)
         button = findViewById(R.id.incrementButton)
-        button.isEnabled = enabled_button
 
         button.setOnClickListener {
-         val result = count.increment(textView.text.toString())
-          if (result is UiState.Max) {
-              enabled_button = false
-              button.isEnabled = enabled_button
-          }
-            textView.text = result.toString()
+            uiState = count.increment(textView.text.toString())
+            uiState.apply(textView, button)
         }
     }
-     override fun onSaveInstanceState(outState: Bundle) {
-         super.onSaveInstanceState(outState)
-        outState.putBoolean("key",enabled_button)
+        override fun onSaveInstanceState(outState: Bundle) {
+            super.onSaveInstanceState(outState)
+            outState.putSerializable(KEY, uiState)
+        }
+
+        override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+            super.onRestoreInstanceState(savedInstanceState)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                uiState = savedInstanceState.getSerializable(KEY, UiState::class.java) as UiState
+            }
+            uiState.apply(textView,button)
+        }
+
+    companion object {
+         const val KEY = "key"
     }
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        enabled_button = savedInstanceState.getBoolean("key")
-    }
 }
